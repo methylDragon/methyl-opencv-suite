@@ -1,2 +1,2 @@
 from . import utils
-from .image_iterator import ImageIterator
+from . import image_iterator
