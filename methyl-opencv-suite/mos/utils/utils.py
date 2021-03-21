@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import wraps, update_wrapper
 import numpy as np
 import cv2
 
@@ -6,7 +6,7 @@ import cv2
 ################################################################################
 # UTILITIES ====================================================================
 ################################################################################
-MORPH_SHAPES = (cv2.MORPH_RECT, cv2.MORPH_ELLIPSE, cv2.MORPH_CROSS)
+MORPH_SHAPES = (cv2.MORPH_RECT, cv2.MORPH_CROSS, cv2.MORPH_ELLIPSE)
 
 # BASIC ========================================================================
 def clamp(n, smallest=float('-inf'), largest=float('inf')):
@@ -37,14 +37,12 @@ def draw_hough_lines(img, lines):
 ################################################################################
 # TRACKBAR DECORATOR ===========================================================
 ################################################################################
-def opencv_trackbars(window_name,
-                     param_definitions,
-                     callback=lambda *args: None):
+class TrackbarManager(object):
     """
     Decorator to manage OpenCV trackbars and pass args to wrapped function.
 
-    The wrapped function will be able to generate OpenCV trackbars by passing
-    start_trackbars = True.
+    The wrapped function will be able to generate OpenCV trackbars and read
+    off of them the moment it is called with use_trackbar_params=True.
 
     The decorator call must be passed definitions for each parameter:
     {
@@ -72,46 +70,80 @@ def opencv_trackbars(window_name,
 
     Note
     ----
-    For each wrapped function func, to use trackbars, first call:
-    func(start_trackbars=True)
+    Pass use_trackbar_params = True to use parameter values from the trackbars.
+    (So, func(*args, use_trackbar_params=True))
 
-    Then call this to use parameter values from the trackbars:
-    func(use_trackbar_params=True)
+    If it is the first time you are calling it, trackbar windows will
+    automatically initialise.
+
+    If you want to get the parameters values from the trackbars, pass
+    get_params = True.
+    (So, func(*args, get_params=True))
     """
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args,
-                    start_trackbars=False,
-                    use_trackbar_params=False,
-                    **kwargs):
-            if start_trackbars:
-                cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    def __init__(self,
+                 window_name,
+                 param_definitions,
+                 callback=lambda *args: None):
+        self._window_name = window_name
+        self._param_definitions = param_definitions
+        self._callback = callback
 
-                for param_var_name, definitions in param_definitions.items():
-                    cv2.createTrackbar(
-                        definitions.get('name', param_var_name),
-                        window_name,
-                        definitions.get('default', 0),
-                        definitions.get('max', 100),
-                        callback
-                    )
-                return
+        self._started = False
+        self._func = None
 
-            if use_trackbar_params:
-                func_params = {}
+    def start(self):
+        if self._started:
+            return
 
-                for param_var_name, definitions in param_definitions.items():
-                    op = definitions.get('operation', lambda x: x)
-                    min = definitions.get('min', float('-inf'))
+        cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL)
 
-                    func_params[param_var_name] = clamp(op(
-                        cv2.getTrackbarPos(
-                            definitions.get('name', param_var_name),
-                            window_name
-                        )
-                    ), min)
+        for param_var_name, definitions in self._param_definitions.items():
+            cv2.createTrackbar(
+                definitions.get('name', param_var_name),
+                self._window_name,
+                definitions.get('default', 0),
+                definitions.get('max', 100),
+                self._callback
+            )
 
-                return func(*args, **kwargs, **func_params)
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
+        self._started = True
+        return
+
+    def from_trackbars(self, *args, **kwargs):
+        return self._func(*args, **kwargs, **self.get_params())
+
+    def get_params(self):
+        if not self._started:
+            self.start()
+
+        func_params = {}
+
+        for param_var_name, definitions in self._param_definitions.items():
+            op = definitions.get('operation', lambda x: x)
+            min = definitions.get('min', float('-inf'))
+
+            func_params[param_var_name] = clamp(op(
+                cv2.getTrackbarPos(definitions.get('name', param_var_name),
+                                   self._window_name)
+            ), min)
+
+        return func_params
+
+    def _wrapper(self,
+                 *args,
+                 get_params=False,
+                 use_trackbar_params=False,
+                 **kwargs):
+        if use_trackbar_params:
+            return self.from_trackbars(*args, **kwargs)
+        elif get_params:
+            return {self._func.__name__ : self.get_params()}
+        return self._func(*args, **kwargs)
+
+    def __call__(self, f):
+        self._func = f
+        update_wrapper(self._wrapper.__func__, f)
+        return self._wrapper
+
+    def __get__(self, instance):
+        return types.MethodType(self, instance) if instance else self
