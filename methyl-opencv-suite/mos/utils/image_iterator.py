@@ -2,7 +2,7 @@ import copy
 import cv2
 
 class ImageIterator:
-    '''
+    """
     Bidirectional infinite iterator for OpenCV image matrices.
 
     Parameters
@@ -14,7 +14,7 @@ class ImageIterator:
         Scaling factor for images, along the x-axis.
     fy: float
         Scaling factor for images, along the y-axis.
-    '''
+    """
     def __init__(self, images, fx=0.2, fy=0.2):
         self.fx, self.fy = fx, fy
         self.set_images(images, fx, fy)
