@@ -2,6 +2,9 @@ from functools import wraps, update_wrapper
 import numpy as np
 import cv2
 
+__all__ = [
+    'MORPH_SHAPES', 'clamp', 'even', 'odd', 'map_to_int', 'TrackbarManager'
+]
 
 ################################################################################
 # UTILITIES ====================================================================
@@ -20,18 +23,6 @@ def odd(n, ceiling=False): # Force odd
 
 def map_to_int(*args):
     return lambda x: args[x]
-
-# HOUGH ========================================================================
-def draw_hough_lines(img, lines):
-    if lines is not None:
-        if len(img.shape) == 2:
-            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(img,(x1,y1),(x2,y2),(0,255,0),5)
-
-    return img
 
 
 ################################################################################
@@ -79,6 +70,9 @@ class TrackbarManager(object):
     If you want to get the parameters values from the trackbars, pass
     get_params = True.
     (So, func(*args, get_params=True))
+
+    If you want to force-start the trackbars start_trackbars = True.
+    (So, func(*args, start_trackbars=True))
     """
     def __init__(self,
                  window_name,
@@ -91,8 +85,8 @@ class TrackbarManager(object):
         self._started = False
         self._func = None
 
-    def start(self):
-        if self._started:
+    def start(self, force=False):
+        if self._started and not force:
             return
 
         cv2.namedWindow(self._window_name, cv2.WINDOW_NORMAL)
@@ -116,6 +110,9 @@ class TrackbarManager(object):
         if not self._started:
             self.start()
 
+        if cv2.getWindowProperty(self._window_name, 3) < 0:
+            self.start(force=True)
+
         func_params = {}
 
         for param_var_name, definitions in self._param_definitions.items():
@@ -132,10 +129,14 @@ class TrackbarManager(object):
     def _wrapper(self,
                  *args,
                  get_params=False,
+                 start_trackbars=False,
                  use_trackbar_params=False,
                  **kwargs):
         if use_trackbar_params:
             return self.from_trackbars(*args, **kwargs)
+        elif start_trackbars:
+            self.start(force=True)
+            return
         elif get_params:
             return {self._func.__name__ : self.get_params()}
         return self._func(*args, **kwargs)
