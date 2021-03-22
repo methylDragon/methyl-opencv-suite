@@ -13,9 +13,9 @@ __all__ = [
 @TrackbarManager(
     "Canny Params",
     {
-        "blur_amount": {'default': 13, 'max': 100},
-        "min_thresh": {'default': 2900, 'max': 10000},
-        "max_thresh": {'default': 4240, 'max': 10000},
+        "blur_amount": {'default': 25, 'max': 100},
+        "min_thresh": {'default': 4344, 'max': 10000},
+        "max_thresh": {'default': 2511, 'max': 10000},
         "aperture": {'default': 7, 'max': 7},
         "l2_grad": {'default': 1, 'max': 1},
      }

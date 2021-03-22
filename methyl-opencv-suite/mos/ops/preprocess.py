@@ -21,12 +21,7 @@ def preprocess_clahe_blur(image_in):
     lab_planes[0] = clahe.apply(lab_planes[0])
 
     lab = cv2.merge(lab_planes)
-    image_in = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
-
-    # Gaussian Blur
-    # image_out = cv2.GaussianBlur(image_in,(5,5),0)
-
-    return image_in
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
 
 ################################################################################
@@ -43,8 +38,6 @@ def preprocess_clahe_blur(image_in):
 def blur(image, x_kernel, y_kernel, sigma_x):
     assert type(image) is np.ndarray, "Input image must be OpenCV image!"
     return cv2.GaussianBlur(image,(odd(x_kernel),odd(y_kernel)),sigma_x)
-
-    return image_out
 
 @TrackbarManager(
     "Threshold Params",
