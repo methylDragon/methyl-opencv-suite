@@ -10,7 +10,7 @@ __all__ = [
 ################################################################################
 # UTILITIES ====================================================================
 ################################################################################
-def meanshift_cluster(data, bandwidth=None, bin_seeding=True, arg=False):
+def meanshift_cluster(data, bandwidth=None, bin_seeding=True, as_arg=False):
     # https://scikit-learn.org/stable/modules/generated/sklearn.cluster.MeanShift.html
     if bandwidth is None:
         bandwidth = estimate_bandwidth(data)
@@ -21,7 +21,7 @@ def meanshift_cluster(data, bandwidth=None, bin_seeding=True, arg=False):
     labels = ms.labels_
     n_clusters = len(np.unique(labels))
 
-    if arg:
-        return [np.argwhere(labels == k).flatten() for k in range(n_clusters_)]
+    if as_arg:
+        return [np.argwhere(labels == k).flatten() for k in range(n_clusters)]
     else:
-        return [data[labels == k, 0] for k in range(n_clusters_)]
+        return [data[labels == k, 0] for k in range(n_clusters)]
