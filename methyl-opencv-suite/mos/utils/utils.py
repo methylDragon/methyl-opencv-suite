@@ -12,6 +12,10 @@ __all__ = [
 MORPH_SHAPES = (cv2.MORPH_RECT, cv2.MORPH_CROSS, cv2.MORPH_ELLIPSE)
 
 # BASIC ========================================================================
+def map_to_int(*args):
+    return lambda x: args[x]
+
+# BASIC MATH ===================================================================
 def clamp(n, smallest=float('-inf'), largest=float('inf')):
     return max(smallest, min(n, largest))
 
@@ -20,9 +24,6 @@ def even(n, ceiling=False): # Force even
 
 def odd(n, ceiling=False): # Force odd
     return (n if n % 2 else n - 1 + ceiling * 2)
-
-def map_to_int(*args):
-    return lambda x: args[x]
 
 
 ################################################################################

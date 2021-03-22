@@ -14,17 +14,6 @@ __all__ = [
 # UTILITIES ====================================================================
 ################################################################################
 
-# MATH =========================================================================
-def line_angle(line, degrees=False):
-    # Line is: [x_1, y_1, x_2, y_2]. Origin is top left of image.
-    radians = math.atan2(line[3] - line[1],
-                         line[2] - line[0])
-
-    if degrees:
-        return math.degrees(radians) % 360
-    else:
-        return radians % math.pi
-
 # DISPLAY ======================================================================
 def draw_hough_lines(img, lines, color=(0, 255, 0), thickness=2):
     if lines is not None:

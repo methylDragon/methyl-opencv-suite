@@ -1,6 +1,10 @@
 import numpy as np
 import math
 
+__all__ = [
+    'LinearLine', 'line_angle', 'lines_to_angles'
+]
+
 ################################################################################
 # MODEL INFINITE LINE ==========================================================
 ################################################################################
@@ -47,6 +51,12 @@ class LinearLine:
         return self.rho, self.theta
 
     def x_from_y(self, y):
+        try: # Handle vertical lines
+            if math.isinf(self.m):
+                return points[0][0]
+        except:
+            pass
+
         return LinearLine.linear_resolve_x(y, self.m, self.c)
 
     def y_from_x(self, x):
@@ -57,8 +67,11 @@ class LinearLine:
         start, end = bounding_box
         m, c = self.m, self.c
 
-        upper_y_intercept = LinearLine.linear_resolve_x(end[1], m, c)
-        lower_y_intercept = LinearLine.linear_resolve_x(start[1], m, c)
+        if math.isinf(self.m): # Handle vertical lines
+            upper_y_intercept = lower_y_intercept = points[0][0]
+        else:
+            upper_y_intercept = LinearLine.linear_resolve_x(end[1], m, c)
+            lower_y_intercept = LinearLine.linear_resolve_x(start[1], m, c)
 
         upper_x_intercept = LinearLine.linear_resolve_y(end[0], m, c)
         lower_x_intercept = LinearLine.linear_resolve_y(start[0], m, c)
@@ -126,3 +139,23 @@ class LinearLine:
             rho = x_1
 
         return rho, theta
+
+
+################################################################################
+# UTILITIES ====================================================================
+################################################################################
+
+# MATH =========================================================================
+def line_angle(line, degrees=False):
+    # Line is: [x_1, y_1, x_2, y_2]. Origin is top left of image.
+    radians = math.atan2(line[3] - line[1],
+                         line[2] - line[0])
+
+    if degrees:
+        return math.degrees(radians) % 360
+    else:
+        return radians % math.pi
+
+def lines_to_angles(lines, degrees=False, dtype=np.float32):
+    angles = map(lambda x:line_angle(x, degrees=degrees), np.squeeze(lines))
+    return np.fromiter(angles, dtype=dtype).reshape(-1, 1)
