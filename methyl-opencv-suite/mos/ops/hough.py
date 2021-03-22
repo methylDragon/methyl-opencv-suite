@@ -1,4 +1,6 @@
 from mos.utils import *
+import mos.utils
+
 import numpy as np
 import cv2
 
@@ -6,13 +8,57 @@ __all__ = [
     'draw_hough_lines',
     'draw_hough_circles',
     'hough_lines_probabilistic',
-    'hough_circles'
+    'hough_circles',
+    'get_mask_from_parallel_lines'
 ]
 
 
 ################################################################################
 # UTILITIES ====================================================================
 ################################################################################
+
+# FILTERING ====================================================================
+def get_mask_from_parallel_lines(image,
+                                 lines,
+                                 bandwidth=np.pi/4,
+                                 bin_seeding=True):
+    hull_img = np.zeros(image.shape, np.uint8)
+
+    # Find equivalence classes of parallel lines
+    angles = mos.utils.lines_to_angles(lines)
+    line_args = mos.utils.meanshift_cluster(angles,
+                                            bandwidth=bandwidth,
+                                            bin_seeding=bin_seeding,
+                                            as_arg=True)
+
+    height, width = image.shape[:2]
+    image_box = ((0, 0), (width, height))
+
+    # Compute convex hull and fill polygon for each class
+    for cluster_args in line_args:
+        cluster_lines = lines[cluster_args] # Get lines by cluster args
+        intersects = []
+
+        for line in cluster_lines:
+            line = line.flatten()
+            l_line = mos.utils.LinearLine(((line[0], line[1]),
+                                           (line[2], line[3])))
+            intersects.append(
+                l_line.intercepts_with_bounding_box(((0, 0), (width, height)))
+            )
+
+        try: # Very rarely, this reshape fails.
+            intersects_arr = (
+                np.array(intersects).reshape(-1, 2).astype(np.int)
+            )
+        except:
+            print("INTERSECT EXCEPTION")
+            continue
+
+        convex_hull_pts = cv2.convexHull(intersects_arr)
+
+        # Draw all contours
+        return cv2.fillConvexPoly(hull_img, convex_hull_pts, (255, 255, 255))
 
 # DISPLAY ======================================================================
 def draw_hough_lines(img, lines, color=(0, 255, 0), thickness=2):
