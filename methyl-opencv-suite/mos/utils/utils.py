@@ -3,7 +3,9 @@ import numpy as np
 import cv2
 
 __all__ = [
-    'MORPH_SHAPES', 'clamp', 'even', 'odd', 'map_to_int', 'TrackbarManager'
+    'MORPH_SHAPES', 'clamp', 'even', 'odd', 'map_to_int', 'TrackbarManager',
+    'midpoint_from_dimensions', 'midpoint_from_points', 'circle_to_box',
+    'circles_to_boxes', 'draw_boxes'
 ]
 
 ################################################################################
@@ -25,6 +27,47 @@ def even(n, ceiling=False): # Force even
 def odd(n, ceiling=False): # Force odd
     return (n if n % 2 else n - 1 + ceiling * 2)
 
+# BASIC GEOMETRY ===============================================================
+def midpoint_from_dimensions(dimensions):
+    return dimensions / 2
+
+def midpoint_from_points(points):
+    if type(points) is not np.ndarray:
+        points = np.array(points)
+    assert points.dtype is not np.dtype(object), "Input must be regular!"
+
+    point = []
+    for i in range(len(points)):
+        point.append(np.mean(points[:,i]))
+    return np.array(point).astype(points.dtype)
+
+def circle_to_box(circle):
+    x, y, r = circle
+    return np.array([[x-r, y-r], [x+r, y+r]])
+
+def circles_to_boxes(circles):
+    if circles is not None:
+        circles = np.around(circles)
+        boxes = []
+
+        for circle in circles[0,:]:
+            boxes.append(circle_to_box(circle))
+        return np.array(boxes).astype(np.int16)
+
+def draw_boxes(img, boxes, color=(0,255,0), thickness=2):
+    if boxes is not None:
+        ret = np.copy(img)
+
+        for box in boxes:
+            x_1, y_1 = box[0]
+            x_2, y_2 = box[1]
+
+            # This inplace draws
+            cv2.rectangle(ret, (x_1, y_1), (x_2, y_2), color, thickness)
+
+        return ret
+    else:
+        return img
 
 ################################################################################
 # TRACKBAR DECORATOR ===========================================================
