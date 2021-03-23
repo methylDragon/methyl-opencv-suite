@@ -62,25 +62,30 @@ def get_mask_from_parallel_lines(image,
 
 # DISPLAY ======================================================================
 def draw_hough_lines(img, lines, color=(0, 255, 0), thickness=2):
-    if lines is not None:
-        if len(img.shape) == 2:
-            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    if lines is None:
+        return img
 
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(img, (x1,y1), (x2,y2), color, thickness)
+    if len(img.shape) == 2:
+        ret = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    else:
+        ret = np.copy(img)
 
-    return img
+    for line in lines:
+        x_1, y_1, x_2, y_2 = line[0]
+        cv2.line(ret, (x_1,y_1), (x_2,y_2), color, thickness)
+    return ret
 
 def draw_hough_circles(img, circles):
-    if circles is not None:
-        circles = np.uint16(np.around(circles))
+    if circles is None:
+        return img
 
-        for i in circles[0,:]:
-            cv2.circle(img, (i[0],i[1]), i[2], (0,255,0), 2) # Circumference
-            cv2.circle(img, (i[0],i[1]), 2, (0,0,255), 3) # Center
+    circles = np.uint16(np.around(circles))
+    ret = np.copy(img)
 
-    return img
+    for i in circles[0,:]:
+        cv2.circle(ret, (i[0],i[1]), i[2], (0,255,0), 2) # Circumference
+        cv2.circle(ret, (i[0],i[1]), 2, (0,0,255), 3) # Center
+    return ret
 
 
 ################################################################################
