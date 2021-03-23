@@ -1,6 +1,10 @@
 import copy
 import cv2
 
+__all__ = [
+    'ImageIterator'
+]
+
 class ImageIterator:
     """
     Bidirectional infinite iterator for OpenCV image matrices.
