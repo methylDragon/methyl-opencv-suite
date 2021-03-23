@@ -29,7 +29,7 @@ class CentroidTracker:
         self.tracked_centroids = OrderedDict()
 
         self.velocities = OrderedDict()
-        self.velocity_log = OrderedDict()
+        self.velocity_average_handlers = OrderedDict()
         self.velocity_window = velocity_window
 
         self.confidences = OrderedDict()
@@ -45,10 +45,9 @@ class CentroidTracker:
         self.missing_count[self.next_id] = 0
 
         self.velocities[self.next_id] = np.zeros(centroid.shape)
-        self.velocity_log[self.next_id] = deque(
-            # Fill velcoity log with zero velocities (up to max capacity)
-            np.zeros((self.velocity_window, *centroid.shape)),
-            maxlen=self.velocity_window
+        self.velocity_average_handlers[self.next_id] = mos.utils.MovingAverage(
+            window=self.velocity_window,
+            initial_entry=np.zeros(centroid.shape)
         )
 
         self.confidences[self.next_id] = 0
@@ -60,7 +59,7 @@ class CentroidTracker:
         del self.missing_count[centroid_id]
 
         del self.velocities[centroid_id]
-        del self.velocity_log[centroid_id]
+        del self.velocity_average_handlers[centroid_id]
         del self.confidences[centroid_id]
 
     def update(self, rects):
@@ -120,15 +119,11 @@ class CentroidTracker:
                 # Update velocities
                 current_velocity = (self.tracked_centroids[centroid_id]
                                     - input_centroids[col])
-                oldest_velocity = self.velocity_log[centroid_id][0]
-
-                self.velocities[centroid_id] += (
-                    (current_velocity - oldest_velocity)
-                    / self.velocity_window
+                self.velocities[centroid_id] = (
+                    self.velocity_average_handlers[centroid_id].update(
+                        current_velocity
+                    )
                 )
-
-                # This pushes out the oldest velocity
-                self.velocity_log[centroid_id].append(current_velocity)
 
                 # Update centroids
                 self.tracked_centroids[centroid_id] = input_centroids[col]
