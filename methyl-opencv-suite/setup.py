@@ -8,6 +8,7 @@ release_status = "Development Status :: 2 - Pre-Alpha"
 dependencies = [
     "opencv-contrib-python",
     "numpy",
+    "scikit-learn"
 ]
 extras = {}
 
