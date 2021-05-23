@@ -12,7 +12,7 @@ dependencies = [
 ]
 extras = {}
 
-packages = find_namespace_packages(include=['mos.*'])
+packages = find_namespace_packages(where='src', include=['mos.*'])
 
 setuptools.setup(
     name=name,
@@ -32,6 +32,7 @@ setuptools.setup(
         "Operating System :: Linux",
     ],
     platforms="Linux",
+    package_dir= {'': 'src'},
     packages=packages,
     install_requires=dependencies,
     extras_require=extras,

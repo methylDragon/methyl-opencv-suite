@@ -2,3 +2,5 @@
 *.pyc
 
 methyl-opencv-suite/methyl_opencv_suite.egg-info/
+
+methyl-opencv-suite/src/methyl_opencv_suite.egg-info/
