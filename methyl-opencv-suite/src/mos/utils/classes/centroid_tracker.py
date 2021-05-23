@@ -24,13 +24,18 @@ class CentroidTracker:
     def __init__(self,
                  max_missing_count=50,
                  max_distance=50,
-                 velocity_window=10):
+                 velocity_moving_average_window=10):
         self.next_id = 0
         self.tracked_centroids = OrderedDict()
 
+        ## Pixel velocity trackers for each centroid
+        # Instantaenous velocities
         self.velocities = OrderedDict()
-        self.velocity_average_handlers = OrderedDict()
-        self.velocity_window = velocity_window
+
+        # Smoothed velocities (by moving average)
+        self.smoothed_velocities = OrderedDict()
+        self.smoothed_velocity_handlers = OrderedDict()
+        self.velocity_moving_average_window = velocity_moving_average_window
 
         self.confidences = OrderedDict()
 
@@ -45,8 +50,10 @@ class CentroidTracker:
         self.missing_count[self.next_id] = 0
 
         self.velocities[self.next_id] = np.zeros(centroid.shape)
-        self.velocity_average_handlers[self.next_id] = mos.utils.MovingAverage(
-            window=self.velocity_window,
+
+        self.smoothed_velocities[self.next_id] = np.zeros(centroid.shape)
+        self.smoothed_velocity_handlers[self.next_id] = mos.utils.MovingAverage(
+            window=self.velocity_moving_average_window,
             initial_entry=np.zeros(centroid.shape)
         )
 
@@ -59,7 +66,8 @@ class CentroidTracker:
         del self.missing_count[centroid_id]
 
         del self.velocities[centroid_id]
-        del self.velocity_average_handlers[centroid_id]
+        del self.smoothed_velocities[centroid_id]
+        del self.smoothed_velocity_handlers[centroid_id]
         del self.confidences[centroid_id]
 
     def update(self, rects):
@@ -119,8 +127,11 @@ class CentroidTracker:
                 # Update velocities
                 current_velocity = (self.tracked_centroids[centroid_id]
                                     - input_centroids[col])
-                self.velocities[centroid_id] = (
-                    self.velocity_average_handlers[centroid_id].update(
+
+                self.velocities[centroid_id] = current_velocity
+
+                self.smoothed_velocities[centroid_id] = (
+                    self.smoothed_velocity_handlers[centroid_id].update(
                         current_velocity
                     )
                 )
@@ -154,4 +165,7 @@ class CentroidTracker:
                 for col in unused_cols:
                     self.register(input_centroids[col])
 
-        return self.tracked_centroids, self.confidences, self.velocities
+        return {'centroids': self.tracked_centroids,
+                'confidences': self.confidences,
+                'smoothed_velocities': self.smoothed_velocities,
+                'velocities': self.velocities}
