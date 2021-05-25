@@ -53,6 +53,8 @@ def circles_to_boxes(circles):
         for circle in circles[0,:]:
             boxes.append(circle_to_box(circle))
         return np.array(boxes).astype(np.int16)
+    else:
+        return np.array([]).astype(np.int16)
 
 def draw_boxes(img, boxes, color=(0,255,0), thickness=2):
     if boxes is not None:
