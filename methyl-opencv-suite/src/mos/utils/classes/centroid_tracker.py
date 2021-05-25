@@ -20,26 +20,39 @@ class CentroidTracker:
 
     Modified from:
     pyimagesearch.com/2018/07/23/simple-object-tracking-with-opencv/
+
+    Parameters
+    ----------
+    max_missing_count : int
+        Number of consecutive updates where a centroid cannot be matched before
+        it is deregistered.
+
+    max_distance : int
+        Max pixel distance allowed when matching centroids during updates.
+
+    smoothed_vel_window : int
+        Moving average window for smoothing pixel velocities.
     """
     def __init__(self,
                  max_missing_count=50,
                  max_distance=50,
-                 velocity_moving_average_window=10):
+                 smoothed_vel_window=10):
         self.next_id = 0
         self.tracked_centroids = OrderedDict()
 
         ## Pixel velocity trackers for each centroid
         # Instantaenous velocities
-        self.velocities = OrderedDict()
+        self.vels = OrderedDict()
 
         # Smoothed velocities (by moving average)
-        self.smoothed_velocities = OrderedDict()
-        self.smoothed_velocity_handlers = OrderedDict()
-        self.velocity_moving_average_window = velocity_moving_average_window
+        self.smoothed_vels = OrderedDict()
+        self.smoothed_vel_handlers = OrderedDict()
+        self.smoothed_vel_window = smoothed_vel_window # MovingAverage window
 
         self.confidences = OrderedDict()
+        self.rects = OrderedDict()
 
-        # Counts number of times an object has been missing from an update
+        # Count number of times an object has been missing from an update
         # Remove object if count > max_missing_count
         self.missing_count = OrderedDict()
         self.max_missing_count = max_missing_count
@@ -49,15 +62,16 @@ class CentroidTracker:
         self.tracked_centroids[self.next_id] = centroid
         self.missing_count[self.next_id] = 0
 
-        self.velocities[self.next_id] = np.zeros(centroid.shape)
+        self.vels[self.next_id] = np.zeros(centroid.shape)
 
-        self.smoothed_velocities[self.next_id] = np.zeros(centroid.shape)
-        self.smoothed_velocity_handlers[self.next_id] = mos.utils.MovingAverage(
-            window=self.velocity_moving_average_window,
+        self.smoothed_vels[self.next_id] = np.zeros(centroid.shape)
+        self.smoothed_vel_handlers[self.next_id] = mos.utils.MovingAverage(
+            window=self.smoothed_vel_window,
             initial_entry=np.zeros(centroid.shape)
         )
 
         self.confidences[self.next_id] = 0
+        self.rects[self.next_id] = (0, 0, 0, 0)
 
         self.next_id += 1
 
@@ -65,10 +79,12 @@ class CentroidTracker:
         del self.tracked_centroids[centroid_id]
         del self.missing_count[centroid_id]
 
-        del self.velocities[centroid_id]
-        del self.smoothed_velocities[centroid_id]
-        del self.smoothed_velocity_handlers[centroid_id]
+        del self.vels[centroid_id]
+        del self.smoothed_vels[centroid_id]
+        del self.smoothed_vel_handlers[centroid_id]
         del self.confidences[centroid_id]
+
+        del self.rects[centroid_id]
 
     def update(self, rects):
         # If update is empty, mark all existing objects missing
@@ -81,7 +97,11 @@ class CentroidTracker:
                 if self.missing_count[centroid_id] > self.max_missing_count:
                     self.deregister(centroid_id)
 
-            return self.tracked_centroids
+            return {'centroids': self.tracked_centroids,
+                    'confidences': self.confidences,
+                    'smoothed_velocities': self.smoothed_vels,
+                    'velocities': self.vels,
+                    'rects': self.rects}
 
         # Get centroids from input boxes
         input_centroids = np.zeros((len(rects), 2), dtype="int")
@@ -128,16 +148,19 @@ class CentroidTracker:
                 current_velocity = (self.tracked_centroids[centroid_id]
                                     - input_centroids[col])
 
-                self.velocities[centroid_id] = current_velocity
+                self.vels[centroid_id] = current_velocity
 
-                self.smoothed_velocities[centroid_id] = (
-                    self.smoothed_velocity_handlers[centroid_id].update(
+                self.smoothed_vels[centroid_id] = (
+                    self.smoothed_vel_handlers[centroid_id].update(
                         current_velocity
                     )
                 )
 
                 # Update centroids
                 self.tracked_centroids[centroid_id] = input_centroids[col]
+
+                # Update rects
+                self.rects[centroid_id] = rects[col]
 
                 # Update missing count and confidence
                 self.missing_count[centroid_id] = 0
@@ -167,5 +190,6 @@ class CentroidTracker:
 
         return {'centroids': self.tracked_centroids,
                 'confidences': self.confidences,
-                'smoothed_velocities': self.smoothed_velocities,
-                'velocities': self.velocities}
+                'smoothed_velocities': self.smoothed_vels,
+                'velocities': self.vels,
+                'rects': self.rects}
