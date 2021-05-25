@@ -43,7 +43,7 @@ class MovingAverage:
             self.data_shape = entry.shape
 
             self.entry_deque = deque(np.zeros((self.window, *entry.shape)),
-                               maxlen=self.window)
+                                     maxlen=self.window)
             self.entry_deque.appendleft(entry)
 
             self.average = np.zeros(entry.shape)
